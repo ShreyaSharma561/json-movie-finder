@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Filter JSON</title>
+  <style>
+    #result {
+      height: auto;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius: 5px;
+      background-color: #121212;
+      grid-template-columns: repeat(3, 1fr);
+      justify-content: space-evenly;
+    }
+
+    .movie-card {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      margin: 10px;
+      background-color: #9e9e9e;
+      width: 300px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #title,
+    #year,
+    #genre,
+    #rating,
+    #votes,
+    #director,
+    #casts,
+    #duration {
+      margin: 5px 0;
+      font-size: 18px;
+    }
+
+    #title {
+      font-weight: bold;
+      background-color: lightcoral;
+    }
+
+    #year {
+      font-style: bold;
+      background-color: lightyellow;
+    }
+
+    #genre {
+      font-style: bold;
+      background-color: lightblue;
+    }
+
+    #rating {
+      font-style: bold;
+      background-color: lightgreen;
+    }
+
+    #votes {
+      font-weight: bold;
+      background-color: lightsalmon;
+    }
+
+    #director {
+      font-weight: bold;
+      background-color: lightgray;
+    }
+
+    #casts {
+      font-weight: bold;
+      background-color: lightcyan;
+    }
+
+    #duration {
+      font-weight: bold;
+      background-color: lightgoldenrodyellow;
+    }
+
+    #searchInput {
+      width: 300px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+      #innerdiv{
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 2px solid black;
+        background: lightgray;
+        box-shadow: -7px 26px 15px #121212;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    
+  </style>
+</head>
+
+<body>
+  <div class="outerdiv">
+    <div id="innerdiv">
+      <h2>Movie lister</h2>
+      <div>
+      <input type="text" id="searchInput" placeholder="Enter name to search" />
+      <button onclick="filterJson()">Search</button></div>
+    </div>
+    <div id="result">
+      <!-- <div id="title">Title: </div>
+    <div id="year">Year: </div>
+    <div id="genre">Genre: </div>
+    <div id="rating">Rating: </div>
+    <div id="votes">Votes: </div>
+    <div id="director">Director: </div>
+    <div id="casts">Casts: </div>
+    <div id="duration">Duration: </div> -->
+    </div>
+  </div>
+  <script>
+    async function filterJson() {
+      const searchValue = document.getElementById("searchInput").value.toLowerCase();
+      if (searchValue === "") {
+        document.getElementById("result").textContent = "Please enter a search term.";
+        return;
+      }
+
+      try {
+        const response = await fetch("data.json");
+        console.log(response)
+
+        const jsonData = await response.json();
+        console.log(jsonData)
+
+        // Helper to normalise cast(s) into an array of strings regardless of the property name
+        function getCastsArray(item) {
+          if (Array.isArray(item.casts)) return item.casts;
+          if (Array.isArray(item.cast)) return item.cast;
+          if (typeof item.casts === 'string' && item.casts.trim() !== '') {
+            return item.casts.split(',').map(s => s.trim());
+          }
+          if (typeof item.cast === 'string' && item.cast.trim() !== '') {
+            return item.cast.split(',').map(s => s.trim());
+          }
+          return [];
+        }
+
+        const filtered = jsonData.filter(item => {
+          const casts = getCastsArray(item);
+          const castsMatch = casts.some(c => typeof c === 'string' && c.toLowerCase().includes(searchValue));
+
+          return (
+            (item.title && item.title.toLowerCase().includes(searchValue)) ||
+            (item.year && item.year.toString().includes(searchValue)) ||
+            (item.genre && item.genre.toLowerCase().includes(searchValue)) ||
+            (item.rating && item.rating.toString().includes(searchValue)) ||
+            (item.votes && item.votes.toString().includes(searchValue)) ||
+            (item.director && item.director.toLowerCase().includes(searchValue)) ||
+            castsMatch
+          );
+        });
+
+        console.log(filtered)
+
+        const resultContainer = document.getElementById("result");
+        resultContainer.innerHTML = ""; // Clear previous results
+
+        if (filtered.length === 0) {
+          resultContainer.textContent = "No results found.";
+          return;
+        }
+
+        filtered.forEach(movie => {
+          const castsToShow = getCastsArray(movie);
+          const movieCard = document.createElement("div");
+          movieCard.classList.add("movie-card");
+          movieCard.innerHTML = `
+        <h3>${movie.title}</h3>
+        <p>Year: ${movie.year}</p>
+        <p>Genre: ${movie.genre}</p>
+        <p>Rating: ${movie.rating}</p>
+        <p>Votes: ${movie.votes}</p>
+        <p>Director: ${movie.director}</p>
+        <p>Casts: ${castsToShow.length ? castsToShow.join(', ') : 'N/A'}</p>
+        <p>Duration: ${movie.duration || movie.duration_minutes} min</p>
+        `;
+          resultContainer.appendChild(movieCard);
+
+          console.log(jsonData)
+        });
+
+      } catch (error) {
+        document.getElementById("result").textContent = "Sorry, an error occurred while fetching the data.";
+      }
+    }
+    // document.getElementById("title").textContent = "Title: " + (filtered[0] && filtered[0].title ? filtered[0].title : "N/A");
+    // document.getElementById("year").textContent = "Year: " + (filtered[0].year ? filtered[0].year : "N/A");
+    // document.getElementById("genre").textContent = "Genre: " + filtered[0].genre;
+    // document.getElementById("rating").textContent = "Rating: " + (filtered[0].rating ? filtered[0].rating : "N/A");
+    // document.getElementById("votes").textContent = "Votes: " + (filtered[0].votes ? filtered[0].votes : "N/A");
+    // document.getElementById("director").textContent = "Director: " + filtered[0].director;
+    // document.getElementById("casts").textContent = "Casts: " + (Array.isArray(filtered[0].cast) ? filtered[0].cast.join(", ") : "N/A");
+    // document.getElementById("duration").textContent = "Duration: " + ( filtered[0].duration_minutes ? filtered[0].duration_minutes : "N/A");
+    //    document.getElementById("result").textContent = "Title: " + filtered[0].title + "\nYear: " + filtered[0].year + "\nGenre: " + filtered[0].genre + "\nRating: " + filtered[0].rating + "\nVotes: " + filtered[0].votes + "\nDirector: " + filtered[0].director + "\nCasts: " + filtered[0].casts.join(", ") + "\nDuration: " + filtered[0].duration;
+
+  </script>
+</body>
+
+</html>
